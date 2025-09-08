@@ -1,47 +1,94 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { Col, Row } from "antd";
 import { useDispatch } from "react-redux";
 import Doctor from "../components/Doctor";
-import { showLoading,hideLoading } from "../redux/alertsSlice";
+import { showLoading, hideLoading } from "../redux/alertsSlice";
+
 function Home() {
-    const [doctors, setDoctors] = useState([]);
-    const dispatch = useDispatch();
-  const getData = async () => {
+  const [doctors, setDoctors] = useState([]);
+  const dispatch = useDispatch();
+
+  const getData = useCallback(async () => {
     try {
-        dispatch(showLoading());
-      const response = await axios.get(
-        "/api/user/get-all-approved-doctors",
-        {
-          headers: {
-            Authorization: "Bearer " + localStorage.getItem("token"),
-          },
-        }
-      );
-        dispatch(hideLoading());
+      dispatch(showLoading());
+      const response = await axios.get("/api/user/get-all-approved-doctors", {
+        headers: { Authorization: "Bearer " + localStorage.getItem("token") },
+      });
+      dispatch(hideLoading());
       if (response.data.success) {
         setDoctors(response.data.data);
       }
     } catch (error) {
-        dispatch(hideLoading());
+      dispatch(hideLoading());
       console.log(error);
     }
-  };
+  }, [dispatch]);
+
   useEffect(() => {
     getData();
-  }, []);
+  }, [getData]);
+
   return (
     <Layout>
-      <Row gutter={[20,20]}>
+      <Row gutter={[20, 20]}>
         {doctors.map((doctor) => (
-            <Col span={8} xs={24} sm={24} lg={8}>
-                <Doctor doctor={doctor} />
-            </Col>
-            ))}
+          <Col key={doctor._id} span={8} xs={24} sm={24} lg={8}>
+            <Doctor doctor={doctor} />
+          </Col>
+        ))}
       </Row>
     </Layout>
   );
 }
-
 export default Home;
+
+
+// import React, { useEffect, useState } from "react";
+// import axios from "axios";
+// import Layout from "../components/Layout";
+// import { Col, Row } from "antd";
+// import { useDispatch } from "react-redux";
+// import Doctor from "../components/Doctor";
+// import { showLoading,hideLoading } from "../redux/alertsSlice";
+// function Home() {
+//     const [doctors, setDoctors] = useState([]);
+//     const dispatch = useDispatch();
+//   const getData = async () => {
+//     try {
+//         dispatch(showLoading());
+//       const response = await axios.get(
+//         "/api/user/get-all-approved-doctors",
+//         {
+//           headers: {
+//             Authorization: "Bearer " + localStorage.getItem("token"),
+//           },
+//         }
+//       );
+//         dispatch(hideLoading());
+//       if (response.data.success) {
+//         setDoctors(response.data.data);
+//       }
+//     } catch (error) {
+//         dispatch(hideLoading());
+//       console.log(error);
+//     }
+//   };
+//   useEffect(() => {
+//     getData();
+//   }, []);
+//   return (
+//     <Layout>
+//       <Row gutter={[20,20]}>
+//         {doctors.map((doctor) => (
+//             <Col span={8} xs={24} sm={24} lg={8}>
+//                 <Doctor doctor={doctor} />
+//             </Col>
+//             ))}
+//       </Row>
+//     </Layout>
+//   );
+// }
+
+// export default Home;
