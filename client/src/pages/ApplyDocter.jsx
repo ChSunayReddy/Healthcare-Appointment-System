@@ -1,4 +1,3 @@
-import { Row, Col, Form, Input, TimePicker, Button } from "antd";
 import React from "react";
 import Layout from "../components/Layout";
 import { useDispatch, useSelector } from "react-redux";
@@ -7,7 +6,6 @@ import { toast } from "react-hot-toast";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import DoctorForm from "../components/DoctorForm";
-import moment from "moment";
 function ApplyDoctor() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
