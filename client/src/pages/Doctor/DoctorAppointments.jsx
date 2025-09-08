@@ -11,6 +11,7 @@ function DoctorAppointments() {
   const [appointments, setAppointments] = useState([]);
   const dispatch = useDispatch();
 
+  // Fetch appointments data
   const getAppointmentsData = useCallback(async () => {
     try {
       dispatch(showLoading());
@@ -28,9 +29,11 @@ function DoctorAppointments() {
       }
     } catch (error) {
       dispatch(hideLoading());
+      toast.error("Error fetching appointments");
     }
   }, [dispatch]);
 
+  // Change appointment status
   const changeAppointmentStatus = async (record, status) => {
     try {
       dispatch(showLoading());
@@ -49,8 +52,8 @@ function DoctorAppointments() {
         getAppointmentsData();
       }
     } catch (error) {
-      toast.error("Error changing doctor status");
       dispatch(hideLoading());
+      toast.error("Error changing appointment status");
     }
   };
 
@@ -58,6 +61,7 @@ function DoctorAppointments() {
     getAppointmentsData();
   }, [getAppointmentsData]);
 
+  // Table columns
   const columns = [
     { title: "Appointment ID", dataIndex: "_id" },
     {
@@ -99,6 +103,44 @@ function DoctorAppointments() {
         </span>
       ),
     },
+    {
+      title: "Actions",
+      dataIndex: "actions",
+      render: (text, record) => {
+        if (record.status === "pending") {
+          return (
+            <div className="d-flex">
+              <h1
+                className="anchor px-3"
+                style={{
+                  cursor: "pointer",
+                  color: "#1890ff",
+                  fontSize: "1.2rem",
+                  margin: 0,
+                }}
+                onClick={() => changeAppointmentStatus(record, "approved")}
+              >
+                Approve
+              </h1>
+              <h1
+                className="anchor"
+                style={{
+                  cursor: "pointer",
+                  color: "#ff4d4f",
+                  fontSize: "1.2rem",
+                  margin: 0,
+                }}
+                onClick={() => changeAppointmentStatus(record, "rejected")}
+              >
+                Reject
+              </h1>
+            </div>
+          );
+        } else {
+          return null;
+        }
+      },
+    },
   ];
 
   return (
@@ -108,6 +150,7 @@ function DoctorAppointments() {
     </Layout>
   );
 }
+
 export default DoctorAppointments;
 
 
