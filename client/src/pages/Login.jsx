@@ -1,7 +1,7 @@
 import {Button, Form , Input} from 'antd';
 import { Link,useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import {useSelector,useDispatch} from "react-redux";
+import {useDispatch} from "react-redux";
 import { setUser } from "../redux/userSlice";
 import React from "react";
 import axios from 'axios';
