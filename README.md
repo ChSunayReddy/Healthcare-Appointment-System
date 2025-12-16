@@ -7,9 +7,9 @@ A **full-stack MERN web application** designed to simplify and digitize the heal
 ## 📌 Project Overview
 
 The Healthcare Appointment System provides an efficient platform for managing healthcare appointments through a secure and user-friendly interface. It replaces manual appointment scheduling with a digital solution, making it suitable for **academic projects, campus placements, and portfolio demonstrations**.
-It has three logins Patient, Doctor, and Admin. 
-Patient applies appointment for the doctor and Doctor Accepts or Rejects the appointment. 
-For the Doctor , The patient applies for the doctor to the admin and the admin accepts or rejects the doctor application.
+- It has three logins Patient, Doctor, and Admin. 
+- Patient applies appointment for the doctor and Doctor Accepts or Rejects the appointment. 
+- For the Doctor , The patient applies for the doctor to the admin and the admin accepts or rejects the doctor application.
 
 ---
 
@@ -65,14 +65,26 @@ For the Doctor , The patient applies for the doctor to the admin and the admin a
 ## 📂 Project Structure
 
 Healthcare-Appointment-System/
+├── client/                # React frontend application
+│   ├── public/            # Static assets
+│   └── src/               # React components, pages, services
 │
-├── client/ # React frontend
-├── models/ # MongoDB schemas
-├── routes/ # API routes
-├── middleware/ # Auth & role validation
-├── config/ # Database configuration
-├── server.js # Backend entry point
-└── package.json # Dependencies
+├── models/                # MongoDB schemas (User, Doctor, Appointment)
+│
+├── routes/                # Express API routes
+│   ├── authRoutes.js      # Authentication routes
+│   ├── appointmentRoutes.js # Appointment management routes
+│
+├── middleware/            # Authentication & role-based authorization
+│   ├── authMiddleware.js
+│
+├── config/                # Database & environment configuration
+│   └── db.js              # MongoDB connection setup
+│
+├── server.js              # Main backend entry point
+├── package.json           # Backend dependencies & scripts
+└── README.md              # Project documentation
+
 
 ---
 
@@ -111,6 +123,7 @@ npm start
 Frontend:
 cd client
 npm start
+```
 
 🔄 API Endpoints (Sample)
 Method	Endpoint	Description
