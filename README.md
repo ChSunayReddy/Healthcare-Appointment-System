@@ -2,6 +2,8 @@
 
 A **full-stack MERN web application** designed to simplify and digitize the healthcare appointment booking process. The system enables patients to book appointments online and allows doctors to manage schedules securely using **JWT-based authentication**, **role-based access control**, and **MongoDB**.
 
+# Deployed Link : https://healthcare-doctor-appointment-system.netlify.app/
+
 ---
 
 ## 📌 Project Overview
@@ -65,25 +67,26 @@ The Healthcare Appointment System provides an efficient platform for managing he
 ## 📂 Project Structure
 
 Healthcare-Appointment-System/
-├── client/                # React frontend application
-│   ├── public/            # Static assets
-│   └── src/               # React components, pages, services
+├── client/                     # React frontend application
+│   ├── public/                 # Static assets
+│   └── src/                    # React components, pages, services
 │
-├── models/                # MongoDB schemas (User, Doctor, Appointment)
+├── models/                     # MongoDB schemas (User, Doctor, Appointment)
 │
-├── routes/                # Express API routes
-│   ├── authRoutes.js      # Authentication routes
-│   ├── appointmentRoutes.js # Appointment management routes
+├── routes/                     # Express API routes
+│   ├── authRoutes.js           # Authentication routes
+│   └── appointmentRoutes.js    # Appointment management routes
 │
-├── middleware/            # Authentication & role-based authorization
-│   ├── authMiddleware.js
+├── middleware/                 # Authentication & role-based authorization
+│   └── authMiddleware.js
 │
-├── config/                # Database & environment configuration
-│   └── db.js              # MongoDB connection setup
+├── config/                     # Database & environment configuration
+│   └── db.js                   # MongoDB connection setup
 │
-├── server.js              # Main backend entry point
-├── package.json           # Backend dependencies & scripts
-└── README.md              # Project documentation
+├── server.js                   # Main backend entry point
+├── package.json                # Backend dependencies & scripts
+└── README.md                   # Project documentation
+
 
 
 ---
