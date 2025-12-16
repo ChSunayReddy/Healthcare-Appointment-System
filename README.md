@@ -2,7 +2,8 @@
 
 A **full-stack MERN web application** designed to simplify and digitize the healthcare appointment booking process. The system enables patients to book appointments online and allows doctors to manage schedules securely using **JWT-based authentication**, **role-based access control**, and **MongoDB**.
 
-# Deployed Link : https://healthcare-doctor-appointment-system.netlify.app/
+# Deployed Link 
+- https://healthcare-doctor-appointment-system.netlify.app/
 
 ---
 
@@ -65,7 +66,7 @@ The Healthcare Appointment System provides an efficient platform for managing he
 ---
 
 ## 📂 Project Structure
-
+```bash
 Healthcare-Appointment-System/
 ├── client/                     # React frontend application
 │   ├── public/                 # Static assets
@@ -87,7 +88,7 @@ Healthcare-Appointment-System/
 ├── package.json                # Backend dependencies & scripts
 └── README.md                   # Project documentation
 
-
+```
 
 ---
 
