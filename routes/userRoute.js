@@ -2,16 +2,109 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/userModel");
 const Doctor = require("../models/doctorModel");
+const Otp = require("../models/otpModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middlewares/authMiddleware");
 const Appointment = require("../models/appointmentModel");
-// const moment = require("moment");
+const sendOtpEmail = require("../utils/sendEmail");
 const moment = require("moment-timezone");
 
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// 1. Send OTP for Registration
+router.post("/send-register-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).send({ success: false, message: "Email is required" });
+    }
+
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
+    if (userExists) {
+      return res.status(200).send({ success: false, message: "User already exists with this email" });
+    }
+
+    const otp = generateOtp();
+    await Otp.deleteMany({ email: email.toLowerCase().trim(), purpose: "registration" });
+    await new Otp({
+      email: email.toLowerCase().trim(),
+      otp,
+      purpose: "registration",
+    }).save();
+
+    await sendOtpEmail(email.toLowerCase().trim(), otp, "Account Registration");
+
+    res.status(200).send({
+      success: true,
+      message: "Verification OTP sent to your email",
+    });
+  } catch (error) {
+    console.error("Error sending register OTP:", error);
+    res.status(500).send({
+      success: false,
+      message: "Failed to send OTP. Please check your email credentials.",
+      error: error.message,
+    });
+  }
+});
+
+// 2. Verify OTP and Complete Registration
+router.post("/verify-and-register", async (req, res) => {
+  try {
+    const { name, email, password, otp } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    if (!name || !normalizedEmail || !password || !otp) {
+      return res.status(400).send({ success: false, message: "All fields including OTP are required" });
+    }
+
+    const userExists = await User.findOne({ email: normalizedEmail });
+    if (userExists) {
+      return res.status(200).send({ success: false, message: "User already exists with this email" });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      otp,
+      purpose: "registration",
+    });
+
+    if (!otpRecord) {
+      return res.status(200).send({ success: false, message: "Invalid or expired OTP" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      name,
+      email: normalizedEmail,
+      password: hashedPassword,
+    });
+    await newUser.save();
+
+    // Delete used OTP
+    await Otp.deleteMany({ email: normalizedEmail, purpose: "registration" });
+
+    res.status(200).send({
+      success: true,
+      message: "User registered successfully",
+    });
+  } catch (error) {
+    console.error("Error in verify-and-register:", error);
+    res.status(500).send({
+      success: false,
+      message: "Error creating user",
+      error: error.message,
+    });
+  }
+});
+
+// Fallback direct register
 router.post("/register", async (req, res) => {
   try {
-    const userExists = await User.findOne({ email: req.body.email });
+    const userExists = await User.findOne({ email: req.body.email?.toLowerCase().trim() });
     if (userExists) {
       return res
         .status(200)
@@ -21,6 +114,7 @@ router.post("/register", async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     req.body.password = hashedPassword;
+    req.body.email = req.body.email?.toLowerCase().trim();
     const newuser = new User(req.body);
     await newuser.save();
     res
@@ -34,36 +128,47 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// 3. Direct Login (Validates Password & returns JWT)
 router.post("/login", async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
+    const normalizedEmail = req.body.email?.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res
         .status(200)
         .send({ message: "User does not exist", success: false });
     }
+
+    if (!user.status) {
+      return res.status(200).send({
+        message: "Your account is blocked. Please contact support.",
+        success: false,
+      });
+    }
+
     const isMatch = await bcrypt.compare(req.body.password, user.password);
     if (!isMatch) {
       return res
         .status(200)
         .send({ message: "Password is incorrect", success: false });
-    } else {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: "1d",
-      });
-      res.status(200).send({
-        message: "Login successful",
-        success: true,
-        data: token,
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          isAdmin: user.isAdmin,
-          isDocter: user.isDocter,
-        },
-      });
     }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    res.status(200).send({
+      message: "Login successful",
+      success: true,
+      data: token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        isDoctor: user.isDoctor,
+      },
+    });
   } catch (error) {
     console.log(error);
     res
@@ -72,31 +177,92 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// 5. Send OTP for Forgot Password
+router.post("/send-reset-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    if (!normalizedEmail) {
+      return res.status(400).send({ success: false, message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(200).send({ success: false, message: "User not found with this email" });
+    }
+
+    const otp = generateOtp();
+    await Otp.deleteMany({ email: normalizedEmail, purpose: "forgot-password" });
+    await new Otp({
+      email: normalizedEmail,
+      otp,
+      purpose: "forgot-password",
+    }).save();
+
+    await sendOtpEmail(normalizedEmail, otp, "Password Reset");
+
+    res.status(200).send({
+      success: true,
+      message: "Password reset OTP sent to your email",
+    });
+  } catch (error) {
+    console.error("Error in send-reset-otp:", error);
+    res.status(500).send({
+      success: false,
+      message: "Failed to send reset OTP",
+      error: error.message,
+    });
+  }
+});
+
+// 6. Reset Password with OTP Verification
 router.post("/forgot-password", async (req, res) => {
   try {
-    const { email, password, "confirm-password": confirmPassword } = req.body;
-    const user = await User.findOne({ email });
+    const { email, otp, password, "confirm-password": confirmPassword } = req.body;
+    const normalizedEmail = email?.toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res
         .status(200)
         .send({ success: false, message: "User not found" });
     }
+
     if (password !== confirmPassword) {
       return res
         .status(200)
         .send({ success: false, message: "Passwords do not match" });
     }
+
+    if (!otp) {
+      return res.status(200).send({ success: false, message: "OTP is required" });
+    }
+
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      otp,
+      purpose: "forgot-password",
+    });
+
+    if (!otpRecord) {
+      return res.status(200).send({ success: false, message: "Invalid or expired OTP" });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     user.password = hashedPassword;
     await user.save();
+
+    // Delete used OTP
+    await Otp.deleteMany({ email: normalizedEmail, purpose: "forgot-password" });
 
     res.status(200).send({
       success: true,
       message: "Password updated successfully",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error resetting password:", error);
     res.status(500).send({
       success: false,
       message: "Error resetting password",

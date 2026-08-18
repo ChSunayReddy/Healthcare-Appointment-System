@@ -16,7 +16,7 @@ function ApplyDoctor() {
       const response = await axios.post(
         "/api/user/apply-doctor-account",
         {
-          ...values,
+          ...values, // Spread the form values into the request body
           userId: user._id,
         },
         {

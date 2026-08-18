@@ -7,8 +7,8 @@ module.exports = async (req, res, next) => {
             return res.status(401).send({ message: "No token provided", success: false });
         }
 
+        // Extract the token from the "Bearer <token>" format
         const token = authHeader.split(" ")[1]; // Bearer <token>
-
         jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
             if (err) {
                 if (err.name === "TokenExpiredError") {

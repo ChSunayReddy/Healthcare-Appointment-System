@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose"); // reuire used to import mongoose library
 const appointmentSchema = new mongoose.Schema(
   {
     userId: { type: String, required: true },
