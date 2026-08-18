@@ -448,7 +448,8 @@ router.get("/get-all-approved-doctors", authMiddleware, async (req, res) => {
 
 router.post("/book-appointment", authMiddleware, async (req, res) => {
   try {
-    const { doctorId, userId, startTime, doctorInfo, userInfo } = req.body;
+    const { doctorId, startTime, doctorInfo } = req.body;
+    const userId = req.user.id;
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).send({ success: false, message: "User not found" });
@@ -472,6 +473,27 @@ router.post("/book-appointment", authMiddleware, async (req, res) => {
     const appointmentStartTime = startIST.clone().utc().toDate();
     const appointmentEndTime = endIST.clone().utc().toDate();
 
+    // Check for overlapping approved or pending appointments
+    const overlappingAppointment = await Appointment.findOne({
+      doctorId,
+      status: { $in: ["approved", "pending"] },
+      appointmentStartTime: { $lt: appointmentEndTime },
+      appointmentEndTime: { $gt: appointmentStartTime },
+    });
+
+    if (overlappingAppointment) {
+      return res.status(200).send({
+        success: false,
+        message: "This time slot has already been requested or booked. Please select another slot.",
+      });
+    }
+
+    const userInfo = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    };
+
     // Create appointment
     const newAppointment = new Appointment({
       doctorId,
@@ -485,16 +507,18 @@ router.post("/book-appointment", authMiddleware, async (req, res) => {
 
     await newAppointment.save();
 
-    // Find doctor by userId (inside doctorInfo)
+    // Find doctor user to send in-app notification
     const doctorUser = await User.findOne({ _id: doctorInfo.userId });
 
     if (doctorUser) {
-      doctorUser.unseenNotifications.push({
+      const unseenNotifications = doctorUser.unseenNotifications || [];
+      unseenNotifications.push({
         type: "new-appointment-request",
         message: `New appointment request by ${userInfo.name} on ${startIST.format("DD-MM-YYYY")} at ${startIST.format("HH:mm")}`,
         onClickPath: "/doctor/appointments",
       });
 
+      doctorUser.unseenNotifications = unseenNotifications;
       await doctorUser.save();
     }
 
