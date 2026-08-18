@@ -299,7 +299,11 @@ router.post("/get-user-info-by-id", authMiddleware, async (req, res) => {
 
 router.post("/apply-doctor-account", authMiddleware, async (req, res) => {
   try {
-    const newdoctor = new Doctor({ ...req.body, status: "pending" });
+    const newdoctor = new Doctor({
+      ...req.body,
+      userId: req.user.id,
+      status: "pending",
+    });
     await newdoctor.save();
     const adminUser = await User.findOne({ isAdmin: true });
     if (!adminUser) {
@@ -310,9 +314,9 @@ router.post("/apply-doctor-account", authMiddleware, async (req, res) => {
     const unseenNotifications = adminUser.unseenNotifications || [];
     unseenNotifications.push({
       type: "new-doctor-request",
-      message: `${newdoctor.firstName} ${newdoctor.lastName} has applied for a docter account`,
+      message: `${newdoctor.firstName} ${newdoctor.lastName} has applied for a doctor account`,
       data: {
-        docterId: newdoctor._id,
+        doctorId: newdoctor._id,
         name: newdoctor.firstName + " " + newdoctor.lastName,
       },
       onClickPath: "/admin/doctorslist",
@@ -324,19 +328,17 @@ router.post("/apply-doctor-account", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    res
-      .status(500)
-      .send({
-        message: "Error in applying doctor account",
-        success: false,
-        error,
-      });
+    res.status(500).send({
+      message: "Error in applying doctor account",
+      success: false,
+      error: error.message,
+    });
   }
 });
 
 router.post("/mark-all-notifications-as-seen", authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -367,7 +369,8 @@ router.post("/mark-all-notifications-as-seen", authMiddleware, async (req, res) 
 
 router.post("/mark-notification-as-seen", authMiddleware, async (req, res) => {
   try {
-    const { userId, notificationId } = req.body;
+    const userId = req.user.id;
+    const { notificationId } = req.body;
     const user = await User.findById(userId);
 
     if (!user) {

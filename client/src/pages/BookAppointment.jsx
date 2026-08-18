@@ -190,8 +190,10 @@ function BookAppointment() {
                       format="HH:mm"
                       className="mt-3"
                       onChange={(value) => setTime(value)}
-                      disabledHours={getDisabledHours}
-                      disabledMinutes={getDisabledMinutes}
+                      disabledTime={() => ({
+                        disabledHours: getDisabledHours,
+                        disabledMinutes: getDisabledMinutes,
+                      })}
                       minuteStep={15}
                     />
 

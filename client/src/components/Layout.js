@@ -41,6 +41,7 @@ function Layout({ children }) {
               const isActive = location.pathname === menu.path;
               return (
                 <div
+                  key={menu.path}
                   className={`d-flex menu-item ${
                     isActive ? "active-menu-item" : ""
                   }`}
@@ -78,12 +79,18 @@ function Layout({ children }) {
 
             <div className="d-flex align-items-center px-4">
               <Badge count={user?.unseenNotifications?.length || 0} onClick={() => navigate('/notifications')}>
-                <i className="ri-notification-line header-action-icon px-3"></i>
+                <i className="ri-notification-line header-action-icon px-3" style={{ cursor: "pointer" }}></i>
               </Badge>
 
-              <Link className="anchor mx-3" to="/profile">
-                {user?.name}
-              </Link>
+              {user?.isDoctor ? (
+                <Link className="anchor mx-3" to={`/doctor/profile/${user._id}`}>
+                  {user?.name}
+                </Link>
+              ) : (
+                <span className="anchor mx-3" style={{ cursor: "default", textDecoration: "none" }}>
+                  {user?.name}
+                </span>
+              )}
             </div>
           </div>
           <div className="body">{children}</div>

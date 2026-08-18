@@ -37,21 +37,26 @@ router.post("/get-doctor-info-by-id", authMiddleware, async (req, res) => {
 
 router.post("/update-doctor-profile", authMiddleware, async (req, res) => {
   try {
-    // The timings are already sent as strings from the frontend,
-    // so no need to format them again.
-    const timings = req.body.timings;
-
-    const doctor = await Doctor.findOneAndUpdate(
-      { userId: req.body.userId },
-      { ...req.body, timings }, // Use the timings directly
-      { new: true }
-    );
-
-    const user = await User.findById(req.body.userId);
+    const userId = req.user.id;
+    const user = await User.findById(userId);
     if (!user || user.status === false) {
       return res.status(403).send({
         success: false,
         message: "Account is blocked. Cannot update profile.",
+      });
+    }
+
+    const { status, _id, userId: _, ...allowedUpdates } = req.body;
+    const doctor = await Doctor.findOneAndUpdate(
+      { userId },
+      allowedUpdates,
+      { new: true }
+    );
+
+    if (!doctor) {
+      return res.status(404).send({
+        success: false,
+        message: "Doctor profile not found",
       });
     }
 
@@ -64,66 +69,80 @@ router.post("/update-doctor-profile", authMiddleware, async (req, res) => {
     res.status(500).send({
       message: "Error updating doctor profile",
       success: false,
-      error,
+      error: error.message,
     });
   }
 });
 
-router.get("/get-appointments-by-doctor-id",
-  authMiddleware,
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
-      const doctor = await Doctor.findOne({ userId });
-      if (!doctor) {
-        return res.status(404).send({
-          success: false,
-          message: "Doctor not found",
-        });
-      }
-      const appointments = await Appointment.find({ doctorId: doctor._id });
-      res.status(200).send({
-        message: "Appointments fetched successfully",
-        success: true,
-        data: appointments,
-      });
-    } catch (error) {
-      console.log(error);
-      res.status(500).send({
-        message: "Error getting appointments",
+router.get("/get-appointments-by-doctor-id", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const doctor = await Doctor.findOne({ userId });
+    if (!doctor) {
+      return res.status(404).send({
         success: false,
-        error,
+        message: "Doctor not found",
       });
     }
+    const appointments = await Appointment.find({ doctorId: doctor._id });
+    res.status(200).send({
+      message: "Appointments fetched successfully",
+      success: true,
+      data: appointments,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message: "Error getting appointments",
+      success: false,
+      error: error.message,
+    });
   }
-);
+});
+
 router.post("/change-appointment-status", authMiddleware, async (req, res) => {
   try {
     const { appointmentId, status } = req.body;
-    const appointment = await Appointment.findByIdAndUpdate(appointmentId, {
-      status,
-    });
-    const user = await User.findById({ _id: appointment.userId });
-    const unseenNotifications = user.unseenNotifications || [];
-    unseenNotifications.push({
-      type: "appointment-status-changed",
-      message: `Your appointment has been ${status}`,
+    const userId = req.user.id;
 
-      onClickPath: "/appointments",
-    });
-    await user.save();
+    // Verify doctor identity
+    const doctor = await Doctor.findOne({ userId });
+    if (!doctor) {
+      return res.status(403).send({ success: false, message: "Doctor profile not found" });
+    }
+
+    const appointment = await Appointment.findOne({ _id: appointmentId, doctorId: doctor._id.toString() });
+    if (!appointment) {
+      return res.status(404).send({ success: false, message: "Appointment not found or unauthorized" });
+    }
+
+    appointment.status = status;
+    await appointment.save();
+
+    const patientUser = await User.findById(appointment.userId);
+    if (patientUser) {
+      const unseenNotifications = patientUser.unseenNotifications || [];
+      unseenNotifications.push({
+        type: "appointment-status-changed",
+        message: `Your appointment with Dr. ${doctor.firstName} ${doctor.lastName} has been ${status}`,
+        onClickPath: "/appointments",
+      });
+      await patientUser.save();
+    }
+
     res.status(200).send({
-      message: "Appointment status Changed successfully",
+      message: "Appointment status changed successfully",
       success: true,
       data: appointment,
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
-      message: "Error getting Appointment status",
+      message: "Error changing appointment status",
       success: false,
-      error,
+      error: error.message,
     });
   }
 });
+
 module.exports = router;
