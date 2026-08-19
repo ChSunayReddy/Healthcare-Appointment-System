@@ -11,31 +11,47 @@ const ipv4Lookup = (hostname, options, callback) => {
 };
 
 const createTransporter = () => {
-  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
+  const rawUser = process.env.EMAIL_USER;
+  const rawPass = process.env.EMAIL_PASS;
+
+  if (!rawUser || !rawPass) {
+    throw new Error(
+      "Missing EMAIL_USER or EMAIL_PASS environment variables. Please configure them in your server/Render dashboard."
+    );
+  }
+
+  // Clean values: strip surrounding quotes and internal spaces (common when copying Google App Passwords)
+  const emailUser = rawUser.replace(/['"]/g, "").trim();
+  const emailPass = rawPass.replace(/['"]/g, "").replace(/\s+/g, "").trim();
+
+  const host = (process.env.EMAIL_HOST || "smtp.gmail.com").replace(/['"]/g, "").trim();
   const port = Number(process.env.EMAIL_PORT) || 587;
   const isSecure = port === 465;
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: isSecure, // false for 587 (STARTTLS), true for 465
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    lookup: ipv4Lookup, // Directly forces IPv4 DNS resolution at the socket level
-    family: 4,
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
+  return {
+    transporter: nodemailer.createTransport({
+      host,
+      port,
+      secure: isSecure, // false for 587 (STARTTLS), true for 465
+      auth: {
+        user: emailUser,
+        pass: emailPass,
+      },
+      lookup: ipv4Lookup, // Forces IPv4 DNS resolution
+      family: 4,
+      tls: {
+        rejectUnauthorized: false,
+      },
+    }),
+    emailUser,
+  };
 };
 
 const sendOtpEmail = async (email, otp, purposeTitle) => {
-  const transporter = createTransporter();
+  const { transporter, emailUser } = createTransporter();
 
   const mailOptions = {
-    from: `"Healthcare Portal" <${process.env.EMAIL_USER}>`,
+    from: `"Healthcare Portal" <${emailUser}>`,
     to: email,
     subject: `Your Verification Code for ${purposeTitle}`,
     html: `

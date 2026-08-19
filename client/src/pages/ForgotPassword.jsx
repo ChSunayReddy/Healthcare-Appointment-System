@@ -48,7 +48,11 @@ function ForgotPassword() {
       }
     } catch (error) {
       dispatch(hideLoading());
-      toast.error(error.response?.data?.message || "Failed to send reset OTP");
+      const msg =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to send reset OTP";
+      toast.error(msg);
     }
   };
 

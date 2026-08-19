@@ -49,7 +49,11 @@ function Register() {
       }
     } catch (error) {
       dispatch(hideLoading());
-      toast.error(error.response?.data?.message || "Failed to send verification OTP");
+      const msg =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Failed to send verification OTP";
+      toast.error(msg);
     }
   };
 
