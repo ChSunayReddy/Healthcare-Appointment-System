@@ -1,11 +1,14 @@
 const nodemailer = require("nodemailer");
 const dns = require("dns");
 
-try {
-  dns.setDefaultResultOrder("ipv4first");
-} catch (e) {
-  // Fallback for older Node versions
-}
+// Custom DNS lookup that strictly forces IPv4 (family: 4)
+const ipv4Lookup = (hostname, options, callback) => {
+  if (typeof options === "function") {
+    callback = options;
+    options = {};
+  }
+  return dns.lookup(hostname, { ...options, family: 4, all: false }, callback);
+};
 
 const createTransporter = () => {
   const host = process.env.EMAIL_HOST || "smtp.gmail.com";
@@ -15,12 +18,13 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     host,
     port,
-    secure: isSecure, // true for 465, false for 587 (STARTTLS)
+    secure: isSecure, // false for 587 (STARTTLS), true for 465
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    family: 4, // Force IPv4 connection to prevent ENETUNREACH on Render and cloud hosts
+    lookup: ipv4Lookup, // Directly forces IPv4 DNS resolution at the socket level
+    family: 4,
     tls: {
       rejectUnauthorized: false,
     },
