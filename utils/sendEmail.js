@@ -1,16 +1,24 @@
 const nodemailer = require("nodemailer");
-const dns = require("dns");
+const dns = require("dns").promises;
 
-// Custom DNS lookup that strictly forces IPv4 (family: 4)
-const ipv4Lookup = (hostname, options, callback) => {
-  if (typeof options === "function") {
-    callback = options;
-    options = {};
+// Resolve hostname to guaranteed IPv4 address (A record only)
+const resolveIpv4Host = async (host) => {
+  // If host is already an IPv4 address, return as is
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+    return host;
   }
-  return dns.lookup(hostname, { ...options, family: 4, all: false }, callback);
+  try {
+    const addresses = await dns.resolve4(host);
+    if (addresses && addresses.length > 0) {
+      return addresses[0];
+    }
+  } catch (error) {
+    console.warn("Direct IPv4 resolution fallback warning:", error.message);
+  }
+  return host;
 };
 
-const createTransporter = () => {
+const createTransporter = async () => {
   const rawUser = process.env.EMAIL_USER;
   const rawPass = process.env.EMAIL_PASS;
 
@@ -20,26 +28,26 @@ const createTransporter = () => {
     );
   }
 
-  // Clean values: strip surrounding quotes and internal spaces (common when copying Google App Passwords)
+  // Clean credentials: strip surrounding quotes and internal whitespace (Google App Passwords)
   const emailUser = rawUser.replace(/['"]/g, "").trim();
   const emailPass = rawPass.replace(/['"]/g, "").replace(/\s+/g, "").trim();
 
-  const host = (process.env.EMAIL_HOST || "smtp.gmail.com").replace(/['"]/g, "").trim();
+  const originalHost = (process.env.EMAIL_HOST || "smtp.gmail.com").replace(/['"]/g, "").trim();
+  const targetHost = await resolveIpv4Host(originalHost);
   const port = Number(process.env.EMAIL_PORT) || 587;
   const isSecure = port === 465;
 
   return {
     transporter: nodemailer.createTransport({
-      host,
+      host: targetHost, // Connects directly to IPv4 IP
       port,
       secure: isSecure, // false for 587 (STARTTLS), true for 465
       auth: {
         user: emailUser,
         pass: emailPass,
       },
-      lookup: ipv4Lookup, // Forces IPv4 DNS resolution
-      family: 4,
       tls: {
+        servername: originalHost, // Ensures SSL/TLS certificate validation succeeds for smtp.gmail.com
         rejectUnauthorized: false,
       },
     }),
@@ -48,7 +56,7 @@ const createTransporter = () => {
 };
 
 const sendOtpEmail = async (email, otp, purposeTitle) => {
-  const { transporter, emailUser } = createTransporter();
+  const { transporter, emailUser } = await createTransporter();
 
   const mailOptions = {
     from: `"Healthcare Portal" <${emailUser}>`,
