@@ -1,24 +1,28 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch (e) {
+  // Fallback for older Node versions
+}
 
 const createTransporter = () => {
-  if (process.env.EMAIL_HOST) {
-    return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT) || 587,
-      secure: process.env.EMAIL_PORT == 465,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-  }
+  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = Number(process.env.EMAIL_PORT) || 587;
+  const isSecure = port === 465;
 
-  // Default to standard Gmail service
   return nodemailer.createTransport({
-    service: "gmail",
+    host,
+    port,
+    secure: isSecure, // true for 465, false for 587 (STARTTLS)
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
+    },
+    family: 4, // Force IPv4 connection to prevent ENETUNREACH on Render and cloud hosts
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 };
