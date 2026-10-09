@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import { Toaster } from 'react-hot-toast';
 import Home from "./pages/Home";
+
 import { useSelector } from "react-redux";
 import ProtectedRoutes from "./components/ProtectedRoutes";
 import PublicRoute from "./components/publicRoute";

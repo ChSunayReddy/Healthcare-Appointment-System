@@ -1,5 +1,5 @@
 import { Row, Col, Button, DatePicker, TimePicker } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Layout from "../components/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import { showLoading, hideLoading } from "../redux/alertsSlice";
@@ -19,7 +19,7 @@ function BookAppointment() {
   const dispatch = useDispatch();
 
   // Fetch doctor info
-  const getDoctorData = async () => {
+  const getDoctorData = useCallback(async () => {
     try {
       dispatch(showLoading());
       const response = await axios.post(
@@ -36,7 +36,7 @@ function BookAppointment() {
       dispatch(hideLoading());
       toast.error("Failed to fetch doctor data");
     }
-  };
+  }, [dispatch, params.doctorId]);
 
   // Book appointment
   const bookNow = async () => {
@@ -123,7 +123,7 @@ function BookAppointment() {
   // Fetch doctor data on mount
   useEffect(() => {
     getDoctorData();
-  }, []);
+  }, [getDoctorData]);
 
   // Functions to disable hours and minutes based on doctor timing
   const getDisabledHours = () => {

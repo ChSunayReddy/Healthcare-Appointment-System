@@ -29,7 +29,12 @@ function ForgotPassword() {
   }, [otpSent, timer]);
 
   // Step 1: Send Reset OTP
-  const handleSendOtp = async (values) => {
+  const handleSendOtp = async (values) => { 
+    /* aync is used to 
+      perform asynchronous operations and wait for their completion before proceeding.
+      In this case, it allows the function to send a request to the server to send a reset OTP and wait for the response before continuing with the rest of the code.
+      
+      */
     try {
       dispatch(showLoading());
       const response = await axios.post("/api/user/send-reset-otp", {
